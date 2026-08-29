@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import joblib
 import pandas as pd
 import numpy as np
 from urllib.parse import urlparse
 import re
+import os
 
 app = Flask(__name__)
 
@@ -135,6 +136,10 @@ def extract_features(url):
     features["phish_hints"] = sum(word in url_lower for word in suspicious_words)
 
     return features
+
+@app.route('/')
+def index():
+    return send_from_directory(os.getcwd(), 'index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
