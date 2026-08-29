@@ -100,6 +100,12 @@
             color: #1e7e34;
             border: 1px solid #d4edda;
         }
+
+        .error {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
     </style>
 </head>
 <body>
@@ -125,18 +131,45 @@
                 return;
             }
 
-            // Placeholder logic — replace this with your actual ML model prediction
-            const isPhishing = url.toLowerCase().includes('phish') || Math.random() > 0.5;
+            const resultDiv = document.getElementById('result');
 
-            if (isPhishing) {
-                resultDiv.className = 'phishing';
-                resultDiv.textContent = 'Phishing URL';
-            } else {
-                resultDiv.className = 'legitimate';
-                resultDiv.textContent = 'Legitimate URL';
+        if (url === '') {
+            resultDiv.style.display = 'none';
+            return;
+        }
+
+        resultDiv.style.display = 'block';
+        resultDiv.className = '';
+        resultDiv.textContent = 'Checking...';
+
+        fetch('http://localhost:5000/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url: url })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = 'Error: ' + data.error;
+                return;
             }
 
-            resultDiv.style.display = 'block';
+            if (data.prediction === 'phishing') {
+                resultDiv.className = 'phishing';
+                resultDiv.textContent = 'Phishing URL (' + data.confidence + '% confidence)';
+            } else {
+                resultDiv.className = 'legitimate';
+                resultDiv.textContent = 'Legitimate URL (' + data.confidence + '% confidence)';
+            }
+        })
+        .catch(error => {
+            resultDiv.className = 'error';
+            resultDiv.textContent = 'Error connecting to prediction service.';
+            console.error('Prediction error:', error);
+        });
         });
     </script>
 </body>
