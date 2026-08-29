@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing URL Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #222;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        #urlInput {
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+            width: 100%;
+        }
+
+        #urlInput:focus {
+            border-color: #888;
+        }
+
+        #checkBtn {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background-color: #333;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        #checkBtn:hover {
+            background-color: #555;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .phishing {
+            background-color: #fde8e8;
+            color: #c53030;
+            border: 1px solid #fbd5d5;
+        }
+
+        .legitimate {
+            background-color: #e6f4ea;
+            color: #1e7e34;
+            border: 1px solid #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Phishing URL Detector</h1>
+        <p class="description">Check whether a URL is likely to be phishing or legitimate.</p>
+
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="Enter URL">
+            <button id="checkBtn">Check URL</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('checkBtn').addEventListener('click', function() {
+            const url = document.getElementById('urlInput').value.trim();
+            const resultDiv = document.getElementById('result');
+
+            if (url === '') {
+                resultDiv.style.display = 'none';
+                return;
+            }
+
+            // Placeholder logic — replace this with your actual ML model prediction
+            const isPhishing = url.toLowerCase().includes('phish') || Math.random() > 0.5;
+
+            if (isPhishing) {
+                resultDiv.className = 'phishing';
+                resultDiv.textContent = 'Phishing URL';
+            } else {
+                resultDiv.className = 'legitimate';
+                resultDiv.textContent = 'Legitimate URL';
+            }
+
+            resultDiv.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
