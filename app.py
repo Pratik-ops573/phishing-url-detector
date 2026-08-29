@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
@@ -7,6 +8,7 @@ import re
 import os
 
 app = Flask(__name__)
+CORS(app)
 
 model = joblib.load('Phishing_url_model.pkl')
 feature_names = joblib.load('phishing_url_features.pkl')
