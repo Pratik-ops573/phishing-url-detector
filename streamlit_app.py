@@ -31,16 +31,53 @@ st.set_page_config(
 def load_model_and_features():
     """Load the trained model and feature names (cached for performance)."""
     try:
-        # Check current directory
-        if not os.path.exists("phishing_url_model.pkl"):
-            st.error("ERROR: Model file not found in current directory")
+        import os
+        import sys
+        
+        # Try multiple possible paths
+        possible_paths = [
+            "phishing_url_model.pkl",  # Current directory
+            os.path.join(os.path.dirname(__file__), "phishing_url_model.pkl"),  # Script directory
+            os.path.join(os.getcwd(), "phishing_url_model.pkl"),  # Working directory
+        ]
+        
+        model_path = None
+        features_path = None
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                model_path = path
+                break
+        
+        if not model_path:
+            st.error("ERROR: Model file 'phishing_url_model.pkl' not found in any expected location")
+            st.error(f"Current working directory: {os.getcwd()}")
+            st.error(f"Script directory: {os.path.dirname(__file__)}")
             st.stop()
         
-        model = joblib.load("phishing_url_model.pkl")
-        features = joblib.load("phishing_url_features.pkl")
+        # Same for features file
+        possible_features_paths = [
+            "phishing_url_features.pkl",
+            os.path.join(os.path.dirname(__file__), "phishing_url_features.pkl"),
+            os.path.join(os.getcwd(), "phishing_url_features.pkl"),
+        ]
+        
+        for path in possible_features_paths:
+            if os.path.exists(path):
+                features_path = path
+                break
+        
+        if not features_path:
+            st.error("ERROR: Features file 'phishing_url_features.pkl' not found")
+            st.stop()
+        
+        model = joblib.load(model_path)
+        features = joblib.load(features_path)
         return model, features
     except Exception as e:
         st.error(f"ERROR: Could not load model files: {str(e)}")
+        import traceback
+        st.error(traceback.format_exc())
         st.stop()
 
 
