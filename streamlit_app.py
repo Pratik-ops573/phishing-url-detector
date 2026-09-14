@@ -2,7 +2,7 @@
 Phishing URL Detector - Streamlit Web App
 
 A machine learning-powered web app that detects phishing URLs using a trained
-Random Forest classifier with 80 URL/content/domain features.
+Random Forest classifier.
 
 Model accuracy: ~96.3% on test set
 """
@@ -10,6 +10,7 @@ Model accuracy: ~96.3% on test set
 import streamlit as st
 import joblib
 import pandas as pd
+import os
 from feature_extraction import extract_all_features, build_feature_vector
 import traceback
 
@@ -20,9 +21,9 @@ import traceback
 
 st.set_page_config(
     page_title="Phishing URL Detector",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_icon="shield",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
 
@@ -30,11 +31,16 @@ st.set_page_config(
 def load_model_and_features():
     """Load the trained model and feature names (cached for performance)."""
     try:
+        # Check current directory
+        if not os.path.exists("phishing_url_model.pkl"):
+            st.error("ERROR: Model file not found in current directory")
+            st.stop()
+        
         model = joblib.load("phishing_url_model.pkl")
         features = joblib.load("phishing_url_features.pkl")
         return model, features
-    except FileNotFoundError as e:
-        st.error(f"❌ Model files not found: {e}")
+    except Exception as e:
+        st.error(f"ERROR: Could not load model files: {str(e)}")
         st.stop()
 
 
@@ -43,57 +49,26 @@ def load_model_and_features():
 # ============================================================================
 
 def main():
-    st.title("🛡️ Phishing URL Detector")
-    st.markdown(
-        "Check whether a URL is **legitimate** or **phishing** using machine learning."
-    )
-
-    # Sidebar with disclaimer and info
-    with st.sidebar:
-        st.header("ℹ️ About")
-        st.markdown(
-            """
-            This tool uses a **Random Forest classifier** trained on ~50k labeled URLs
-            to predict phishing likelihood.
-            
-            **Model Performance:**
-            - Accuracy: ~96.3%
-            - Precision: ~96%
-            - Recall: ~97%
-            
-            **Note:** This is a heuristic, not a guarantee. Always exercise judgment
-            with unfamiliar links, and never enter credentials into suspicious pages.
-            """
-        )
-        
-        st.markdown("---")
-        st.markdown(
-            "📊 **Features analyzed:**\n"
-            "- URL structure & length\n"
-            "- Hostname characteristics\n"
-            "- Page content & HTML elements\n"
-            "- Domain registration (WHOIS)\n"
-            "- DNS resolution\n"
-            "- Phishing keyword hints"
-        )
-        
-        st.markdown("---")
-        st.caption("⚙️ Deployment: Streamlit Community Cloud")
+    # Title - Simple and Clean
+    st.title("Phishing URL Detector")
+    
+    st.markdown("Enter a URL to check if it is legitimate or phishing")
+    st.markdown("---")
 
     # Load model
     model, feature_names = load_model_and_features()
 
-    # URL Input
-    st.subheader("Enter a URL to Check")
+    # URL Input - Simple
     url_input = st.text_input(
         "URL:",
-        placeholder="e.g., https://www.google.com or amazon.com",
+        placeholder="Example: https://www.google.com or amazon.com",
         label_visibility="collapsed"
     )
 
-    if st.button("🔍 Check URL", type="primary", use_container_width=True):
+    # Check Button
+    if st.button("Check URL", type="primary", use_container_width=True):
         if not url_input or not url_input.strip():
-            st.error("⚠️ Please enter a URL.")
+            st.error("Please enter a URL")
         else:
             # Normalize URL
             url = url_input.strip()
@@ -101,7 +76,7 @@ def main():
                 url = "https://" + url
 
             # Extract features with spinner
-            with st.spinner("🔄 Analyzing URL... (this may take a few seconds)"):
+            with st.spinner("Analyzing URL..."):
                 try:
                     features_dict, fetch_succeeded = extract_all_features(url)
                     feature_vector = build_feature_vector(features_dict, feature_names)
@@ -110,77 +85,62 @@ def main():
                     prediction = model.predict([feature_vector])[0]
                     probability = model.predict_proba([feature_vector])[0]
 
-                    # Display verdict
+                    # Display verdict - Clean and Simple
                     st.markdown("---")
-                    col1, col2 = st.columns([2, 1])
-
-                    with col1:
-                        if prediction == 1:  # Phishing
-                            st.markdown(
-                                '<div style="padding: 20px; background-color: #ffebee; border-radius: 8px; border-left: 5px solid #d32f2f;">'
-                                '<h2 style="color: #d32f2f; margin: 0;">⚠️ Likely Phishing</h2>'
-                                '<p style="color: #c62828; margin-top: 10px; font-size: 16px;">This URL exhibits characteristics typical of phishing attempts.</p>'
-                                '</div>',
-                                unsafe_allow_html=True
-                            )
-                        else:  # Legitimate
-                            st.markdown(
-                                '<div style="padding: 20px; background-color: #e8f5e9; border-radius: 8px; border-left: 5px solid #388e3c;">'
-                                '<h2 style="color: #388e3c; margin: 0;">✅ Likely Legitimate</h2>'
-                                '<p style="color: #2e7d32; margin-top: 10px; font-size: 16px;">This URL appears to be safe based on structural analysis.</p>'
-                                '</div>',
-                                unsafe_allow_html=True
-                            )
-
-                    with col2:
-                        st.metric(
-                            "Confidence",
-                            f"{max(probability) * 100:.1f}%",
-                            delta=None
-                        )
+                    
+                    if prediction == 1:  # Phishing
+                        st.error("PHISHING DETECTED")
+                        col1, col2 = st.columns(2)
+                        col1.metric("Result", "Phishing")
+                        col2.metric("Confidence", f"{probability[1] * 100:.1f}%")
+                    else:  # Legitimate
+                        st.success("LEGITIMATE")
+                        col1, col2 = st.columns(2)
+                        col1.metric("Result", "Legitimate")
+                        col2.metric("Confidence", f"{probability[0] * 100:.1f}%")
 
                     # Fetch warning
                     if not fetch_succeeded:
-                        st.info(
-                            "ℹ️ **Page content could not be fetched.** "
-                            "The prediction is based on URL structure only, which may reduce accuracy."
-                        )
+                        st.warning("Note: Page content could not be fetched. Result based on URL structure only.")
 
                     # Expandable features section
-                    with st.expander("📊 View Extracted Features (80 total)"):
-                        # Create a DataFrame for better visualization
+                    with st.expander("View All Features"):
                         features_df = pd.DataFrame({
                             "Feature": list(features_dict.keys()),
                             "Value": list(features_dict.values())
                         })
                         
-                        # Round numeric values for readability
                         features_df["Value"] = features_df["Value"].apply(
                             lambda x: round(x, 4) if isinstance(x, float) else x
                         )
                         
-                        # Display in columns for easier scanning
                         st.dataframe(features_df, use_container_width=True, hide_index=True)
-                        
-                        # Summary statistics
-                        col1, col2, col3 = st.columns(3)
-                        col1.metric("Total Features", len(features_dict))
-                        col2.metric("Zero-valued Features", sum(1 for v in features_dict.values() if v == 0))
-                        col3.metric("Fetch Succeeded", "✅ Yes" if fetch_succeeded else "❌ No")
 
                 except ValueError as e:
-                    st.error(f"❌ Feature extraction error: {e}")
+                    st.error(f"Feature extraction error: {e}")
                 except Exception as e:
-                    st.error(f"❌ An error occurred: {str(e)}")
-                    with st.expander("🐛 Error Details"):
-                        st.code(traceback.format_exc())
+                    st.error(f"Error: {str(e)}")
 
-    # Footer
-    st.markdown("---")
-    st.caption(
-        "🔒 **Privacy:** This app only sends your URL to public APIs for page/WHOIS/DNS lookups. "
-        "No data is logged or stored."
-    )
+    # Info in sidebar
+    with st.sidebar:
+        st.header("About")
+        st.markdown("""
+**Accuracy:** 96.3%
+**Precision:** 96%
+**Recall:** 97%
+
+**Model:** Random Forest trained on 50,000 URLs
+
+**Features Analyzed:**
+- URL structure
+- Hostname characteristics
+- Page content
+- Domain registration
+- DNS records
+- Phishing keywords
+
+**Disclaimer:** This is a heuristic tool. Always verify suspicious links independently.
+        """)
 
 
 if __name__ == "__main__":
