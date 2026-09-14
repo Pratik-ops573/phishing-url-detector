@@ -11,6 +11,7 @@ import streamlit as st
 import joblib
 import pandas as pd
 import os
+from pathlib import Path
 from feature_extraction import extract_all_features, build_feature_vector
 import traceback
 
@@ -31,46 +32,20 @@ st.set_page_config(
 def load_model_and_features():
     """Load the trained model and feature names (cached for performance)."""
     try:
-        import os
-        import sys
-        
-        # Try multiple possible paths
-        possible_paths = [
-            "phishing_url_model.pkl",  # Current directory
-            os.path.join(os.path.dirname(__file__), "phishing_url_model.pkl"),  # Script directory
-            os.path.join(os.getcwd(), "phishing_url_model.pkl"),  # Working directory
-        ]
-        
-        model_path = None
-        features_path = None
-        
-        for path in possible_paths:
-            if os.path.exists(path):
-                model_path = path
-                break
-        
-        if not model_path:
-            st.error("ERROR: Model file 'phishing_url_model.pkl' not found in any expected location")
-            st.error(f"Current working directory: {os.getcwd()}")
-            st.error(f"Script directory: {os.path.dirname(__file__)}")
+        app_dir = Path(__file__).resolve().parent
+        model_path = app_dir / "Phishing_url_model.pkl"
+        features_path = app_dir / "phishing_url_features.pkl"
+
+        if not model_path.is_file():
+            st.error(f"ERROR: Model file not found: {model_path.name}")
+            st.error(f"Expected location: {model_path}")
             st.stop()
-        
-        # Same for features file
-        possible_features_paths = [
-            "phishing_url_features.pkl",
-            os.path.join(os.path.dirname(__file__), "phishing_url_features.pkl"),
-            os.path.join(os.getcwd(), "phishing_url_features.pkl"),
-        ]
-        
-        for path in possible_features_paths:
-            if os.path.exists(path):
-                features_path = path
-                break
-        
-        if not features_path:
-            st.error("ERROR: Features file 'phishing_url_features.pkl' not found")
+
+        if not features_path.is_file():
+            st.error(f"ERROR: Features file not found: {features_path.name}")
+            st.error(f"Expected location: {features_path}")
             st.stop()
-        
+
         model = joblib.load(model_path)
         features = joblib.load(features_path)
         return model, features
