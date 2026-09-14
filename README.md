@@ -1,103 +1,248 @@
-# Phishing URL Detector
+# 🛡️ Phishing URL Detector
 
-A machine learning project to detect whether a URL is phishing or legitimate. The model is served through a lightweight Flask API and accessed via a simple HTML/JS frontend.
+A machine learning-powered web application that detects phishing URLs with ~96.3% accuracy using a trained Random Forest classifier and comprehensive feature extraction (URL structure, HTML content, WHOIS, DNS).
+
+**Try it online:** [Deploy on Streamlit Community Cloud](#deployment)
 
 ## Model Performance
 
 | Metric | Value |
 |--------|-------|
-| Model | Random Forest (200 trees, max_depth=None) |
-| Accuracy | ~96% |
-| Precision (Phishing) | ~0.96 |
-| Recall (Phishing) | ~0.97 |
-| F1-Score (Phishing) | ~0.96 |
+| Model | Random Forest (100 trees) |
+| Accuracy | ~96.3% |
+| Precision (Phishing) | ~96% |
+| Recall (Phishing) | ~97% |
+| F1-Score (Phishing) | ~96% |
+| Test Set Size | 20% (~10k URLs) |
 
-### Confusion Matrix (Test Set)
+The model was trained on ~50k labeled URLs using 80 handcrafted features and evaluated on a held-out 20% stratified test split.
 
-|              | Predicted Legitimate | Predicted Phishing |
-|--------------|----------------------|--------------------|
-| Actual Legitimate | High | Low |
-| Actual Phishing   | Low  | High |
+---
 
-The model was trained on ~50k labeled URLs using 53 handcrafted features and evaluated on a held-out 20% stratified test split.
+## Features Extracted (80 Total)
 
-## Features Used
+### 1. URL-Level Features (~45)
+- **Basic Counts**: length, dots, hyphens, slashes, colons, underscores, special chars
+- **Structure**: IP detection, port presence, protocol scheme, double slashes
+- **Ratios**: digit ratio in URL/hostname, word statistics
+- **Hostname**: length, subdomain count, www presence, TLD info
+- **Phishing Hints**: suspicious words (login, verify, password, bank, etc.)
+- **Shorteners**: detection of bit.ly, tinyurl, goo.gl, etc.
+- **Suspicious TLDs**: .tk, .ml, .ga, .cf, .gq, .top, .xyz, .club
+- **Brands**: presence of known brands (Google, Facebook, PayPal, Amazon, etc.)
 
-The model uses 53 URL-based features extracted without external lookups:
+### 2. HTML/Page-Content Features (~19)
+- **Hyperlinks**: count, internal vs external ratio
+- **Forms**: login form detection (password input)
+- **Media**: external CSS, images, videos, iframes
+- **Scripts**: popup detection, onmouseover events, right-click handlers
+- **Title**: empty title, domain in title
+- **Meta**: redirects, favicon source (external vs internal)
 
-- **Basic counts**: URL/hostname length, dots, hyphens, slashes, etc.
-- **Structure**: IP address present, custom port, double slashes, http in path
-- **Digits**: Ratio of digits in URL and hostname
-- **Words**: Average, shortest, and longest word lengths across URL, hostname, and path
-- **Domain/TLD**: Suspicious TLDs (.tk, .ml, .xyz...), subdomain count, punycode
-- **Brands**: Presence of known brand names in domain, subdomain, or path
-- **Phishing hints**: Suspicious words like `login`, `verify`, `password`, etc.
-- **Shorteners**: Known URL shortening services
+### 3. Domain/WHOIS Features (~3)
+- **Registered Domain**: WHOIS record exists (0/1)
+- **Domain Age**: days since registration (or -1 if unknown)
+- **Registration Length**: days until expiration (or -1 if unknown)
 
-## Model Choice
+### 4. DNS Features (~1)
+- **DNS Record**: A record resolves (0/1)
 
-Random Forest was selected because:
-- Handles mixed numeric/categorical-like features well
-- Robust to outliers and non-linear relationships
-- Provides feature importance for interpretability
-- Strong baseline performance on tabular data
+### 5. Traffic/Ranking Features (~4)
+- **Web Traffic, Page Rank, Google Index, Statistical Report**: Approximated with neutral defaults (0)
+- *Note: Free tier limitation. These historical Alexa-based signals are now approximated.*
 
-Logistic Regression was also evaluated but Random Forest achieved better accuracy and F1.
+---
 
 ## Project Structure
 
 ```
 PhishingProj/
-├── app.py                  # Flask API server
-├── index.html              # Frontend UI
-├── PhishingML.ipynb        # Training notebook
-├── Phishing_url_model.pkl  # Trained model
-├── phishing_url_features.pkl # Feature schema
-├── dataset_phishing.csv    # Training dataset
-├── requirements.txt        # Python dependencies
+├── streamlit_app.py              # Streamlit web app (main)
+├── feature_extraction.py         # Feature extraction module
+├── PhishingML.ipynb              # Training notebook
+├── Phishing_url_model.pkl        # Trained Random Forest model
+├── phishing_url_features.pkl     # Feature names (column order)
+├── dataset_phishing.csv          # Training dataset (~50k URLs)
+├── requirements.txt              # Python dependencies
 └── README.md
 ```
 
-## How to Run
+---
 
-### 1. Clone the repository
+## 🚀 Quick Start (Local)
+
+### Prerequisites
+- Python 3.8+
+- Git
+
+### Installation & Running
 
 ```bash
-git clone https://github.com/Pratik-ops573/Phishing_ML_Project.git
-cd Phishing_ML_Project
-```
+# 1. Clone the repository
+git clone <repo-url>
+cd PhishingProj
 
-### 2. Create a virtual environment (recommended)
-
-```bash
+# 2. Create virtual environment (recommended)
 python -m venv venv
 venv\Scripts\activate     # Windows
 source venv/bin/activate  # macOS/Linux
-```
 
-### 3. Install dependencies
-
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Run the Streamlit app
+streamlit run streamlit_app.py
 ```
 
-### 4. Start the Flask backend
+The app will open at `http://localhost:8501` in your default browser.
+
+### What to Expect
+- Enter a URL (e.g., `https://www.google.com` or just `amazon.com`)
+- Click **Check URL**
+- Get verdict: ✅ **Legitimate** or ⚠️ **Phishing** with confidence %
+- View all 80 extracted features in an expandable section
+- See note if page fetch failed (prediction based on URL only)
+
+---
+
+## 🌐 Deployment to Streamlit Community Cloud
+
+### Step 1: Push Code to GitHub
 
 ```bash
-python app.py
+# If not already a git repo
+git init
+git add .
+git commit -m "Add Streamlit phishing detector"
+git remote add origin https://github.com/<your-username>/<your-repo>.git
+git push -u origin main
 ```
 
-The API will run at `http://localhost:5000`.
+### Step 2: Deploy via Streamlit Cloud
 
-### 5. Open the frontend
+1. Go to [share.streamlit.io](https://share.streamlit.io)
+2. Click **"New app"**
+3. Select your GitHub repo, branch, and main file:
+   - **Repository**: `<your-username>/<your-repo>`
+   - **Branch**: `main`
+   - **Main file path**: `streamlit_app.py`
+4. Click **"Deploy!"**
 
-Open `index.html` in your browser. Enter a URL and click **Check URL** to see the prediction.
+Streamlit will install dependencies from `requirements.txt` and launch your app.
 
-## API Endpoint
+### Step 3: Share Your Link
 
-**POST** `/predict`
+Once deployed, you'll get a public link like:
+```
+https://phishing-detector-abc123.streamlit.app
+```
 
-Request body:
+Share this link with anyone to let them check URLs!
+
+---
+
+## 📋 Feature Extraction Details
+
+### URL-Level Features
+No external network calls required. Purely algorithmic parsing of the URL string:
+- Character/word counts, ratios, patterns
+- IP address and port detection via regex
+- Brand and suspicious keyword matching
+
+### HTML/Page-Content Features
+Optional page fetch (5-second timeout) to analyze DOM:
+- Counts of `<a>`, `<form>`, `<img>`, `<iframe>`, `<script>` elements
+- Login form detection (password input)
+- Favicon source (internal vs external)
+- Link anchor text analysis
+- Error handling: if page fetch fails, these features default to 0 and a warning is shown
+
+### WHOIS Features
+Uses `python-whois` to query domain registration:
+- Domain age (days since creation)
+- Registration length (days until expiration)
+- Registered indicator (0/1)
+- Gracefully handles rate-limiting; defaults to -1 (unknown) on failure
+
+### DNS Features
+Uses `dnspython` to check A record resolution:
+- Returns 1 if domain resolves, 0 otherwise
+- 3-second timeout per lookup
+
+### Traffic/Ranking Features
+Approximated with neutral defaults (0) due to free-tier limitations:
+- Alexa traffic rank (defunct)
+- Google PageRank (deprecated)
+- Google index presence
+- Statistical reports
+- These are placeholders; consider paid APIs for production
+
+---
+
+## 🔒 Privacy & Security
+
+- **No data logging**: URLs are not stored on the server
+- **No external tracking**: App does not collect usage stats
+- **API calls only when needed**: Page fetch, WHOIS, DNS are made only for the submitted URL
+- **HTTPS on Streamlit Cloud**: Secure connection by default
+- **User discretion advised**: Always verify unfamiliar links independently
+
+---
+
+## 🛠️ Training & Model Details
+
+See [PhishingML.ipynb](PhishingML.ipynb) for:
+- Data loading and EDA
+- Feature extraction logic
+- Model training (Logistic Regression vs Random Forest comparison)
+- Hyperparameter tuning (GridSearchCV)
+- Model evaluation and confusion matrix
+- Feature importance analysis
+- Artifact serialization (joblib.dump)
+
+### Training Dataset
+- **Size**: ~50k URLs
+- **Classes**: Legitimate (0) and Phishing (1)
+- **Train/Test**: 80/20 split with stratification
+- **Source**: Public phishing datasets
+
+---
+
+## ⚠️ Disclaimer
+
+This tool is a **machine learning heuristic** and should not be your sole trust indicator. 
+
+**Always:**
+- Verify links independently before clicking
+- Check email sender and domain carefully
+- Never enter credentials on unfamiliar pages
+- Use browser security extensions (uBlock Origin, HTTPS Everywhere)
+- Keep your OS and browser updated
+
+**This app helps**, but responsible internet hygiene is still essential.
+
+---
+
+## 📝 License
+
+[MIT License](LICENSE) – feel free to use, modify, and distribute.
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! To improve this project:
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/my-improvement`)
+3. Commit changes (`git commit -am 'Add feature'`)
+4. Push (`git push origin feature/my-improvement`)
+5. Open a Pull Request
+
+---
+
+## 💬 Questions?
+
+Open an issue on GitHub or reach out via [your contact info].
 ```json
 {
   "url": "https://www.example.com/login"
